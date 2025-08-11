@@ -22,6 +22,7 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         return mail.html2plaintext(message_html)
 
     def action_enviar_whatsapp_cotacao(self):
+        # ... (Esta função está correta e não muda)
         self.ensure_one()
         try:
             message_text = self._get_whatsapp_message('pedido_whatsapp.mail_template_sale_quotation')
@@ -38,21 +39,15 @@ class SaleOrder(models.Model, WhatsappApiMixin):
     def action_enviar_whatsapp_pdf(self):
         self.ensure_one()
 
-        # 1. Criamos um novo ambiente de execução com o usuário SUPERUSER
-        sudo_env = self.env(user=SUPERUSER_ID)
-        
-        # 2. Usamos este ambiente para buscar o relatório
-        report_template = sudo_env['ir.actions.report'].search([
-            ('model', '=', 'sale.order'),
-            ('report_type', '=', 'qweb-pdf')
-        ], limit=1)
-
-        if not report_template:
-            raise UserError(_("Nenhum relatório PDF para Pedidos de Venda foi encontrado no sistema."))
-
         # --- CORREÇÃO FINAL E DEFINITIVA AQUI ---
-        # 3. Renderizamos o PDF passando um único ID (self.id) para a função
-        pdf_content, content_type = report_template._render_qweb_pdf(self.id)
+        # 1. Buscamos o relatório de forma segura.
+        report = self.env['ir.actions.report']._get_report_from_name('sale.report_saleorder')
+        if not report:
+            raise UserError(_("O relatório de orçamento padrão ('sale.report_saleorder') não foi encontrado."))
+
+        # 2. Usamos o método oficial 'report_action' para gerar o PDF.
+        #    Este método lida com todas as permissões e contextos corretamente.
+        pdf_content = report._render_qweb_pdf(self.id)[0]
         # --- FIM DA CORREÇÃO ---
 
         pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
@@ -68,6 +63,7 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         }
 
     def action_enviar_whatsapp_cancelado(self):
+        # ... (Esta função está correta e não muda)
         self.ensure_one()
         message_text = self._get_whatsapp_message('pedido_whatsapp.mail_template_sale_cancel')
         chat_id = self._format_waha_number(self.partner_id)
@@ -76,6 +72,7 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         return True
 
     def action_cancel(self):
+        # ... (Esta função está correta e não muda)
         res = super().action_cancel()
         try:
             self.action_enviar_whatsapp_cancelado()
