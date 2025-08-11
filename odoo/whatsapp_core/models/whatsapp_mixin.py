@@ -57,3 +57,37 @@ class WhatsappApiMixin(models.AbstractModel):
         except requests.exceptions.RequestException as e:
             _logger.error("Erro ao conectar com a API do WhatsApp: %s", e)
             raise UserError(_("Falha ao enviar a mensagem via WhatsApp. Verifique a conexão com a API e tente novamente.\n\nDetalhe: %s", e))
+        
+    def _send_whatsapp_document(self, chat_id, file_name, base64_data, caption=''):
+        """Envia um documento (PDF) codificado em Base64."""
+        waha_url = self._get_waha_param('whatsapp.api.url')
+        api_key = self._get_waha_param('whatsapp.api.key')
+        session = self._get_waha_param('whatsapp.api.session')
+
+        if not waha_url or not api_key or not session:
+            raise UserError(_("As configurações da API do WhatsApp não foram definidas."))
+
+        # A URL da API para enviar arquivos é diferente
+        api_url = f"{waha_url}/api/sendDocument"
+        headers = { "Content-Type": "application/json", "X-Api-Key": api_key }
+        payload = {
+            "session": session,
+            "chatId": chat_id,
+            "file": {
+                "mimetype": "application/pdf",
+                "filename": file_name,
+                "data": base64_data
+            },
+            "caption": caption # Legenda opcional para o arquivo
+        }
+
+        _logger.info("Enviando DOCUMENTO via WAHA. URL: %s", api_url)
+
+        try:
+            response = requests.post(api_url, json=payload, headers=headers, timeout=20) # Aumentamos o timeout para arquivos
+            response.raise_for_status()
+            _logger.info("Documento enviado com sucesso. Resposta: %s", response.text)
+            return True
+        except requests.exceptions.RequestException as e:
+            _logger.error("Erro ao enviar documento via WhatsApp: %s", e)
+            raise UserError(_("Falha ao enviar o documento via WhatsApp.\n\nDetalhe: %s", e))

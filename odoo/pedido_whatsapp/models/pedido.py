@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
+import base64
 from odoo import models, _
-# --- ADIÇÃO IMPORTANTE AQUI ---
-# Importamos a biblioteca de ferramentas de email do Odoo
 from odoo.tools import mail
+from odoo.exceptions import UserError
 
 # Importamos o Mixin diretamente
 from odoo.addons.whatsapp_core.models.whatsapp_mixin import WhatsappApiMixin
@@ -28,7 +28,6 @@ class SaleOrder(models.Model, WhatsappApiMixin):
             template.body_html, 'sale.order', self.ids
         )[self.id]
         
-        # --- CORREÇÃO FINAL E VERIFICADA AQUI ---
         # Usa a função correta 'html2plaintext' para converter HTML em texto puro
         return mail.html2plaintext(message_html)
 
@@ -45,6 +44,40 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         except Exception as e:
             _logger.error("Falha detalhada ao enviar cotação por WhatsApp: %s", e)
             raise
+
+    def action_enviar_whatsapp_pdf(self):
+        self.ensure_one()
+
+        # Busca inteligente pelo relatório PDF associado ao modelo 'sale.order'
+        report_template = self.env['ir.actions.report'].search([
+            ('model', '=', 'sale.order'),
+            ('report_type', '=', 'qweb-pdf')
+        ], limit=1)
+
+        if not report_template:
+            raise UserError(_("Nenhum relatório PDF para Pedidos de Venda foi encontrado no sistema."))
+
+        # Adicionamos .sudo() para executar a renderização com permissões elevadas
+        pdf_content, content_type = report_template.sudo()._render_qweb_pdf(self.id)
+
+        # Codifica o conteúdo do PDF em Base64
+        pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+
+        # Define um nome para o arquivo e uma legenda
+        file_name = f"{self.name}.pdf"
+        caption = f"Olá, {self.partner_id.name}! Segue em anexo o seu orçamento."
+
+        # Usa as funções do nosso motor (core)
+        chat_id = self._format_waha_number(self.partner_id)
+        self._send_whatsapp_document(chat_id, file_name, pdf_base64, caption)
+
+        # Adiciona uma nota no histórico do Odoo (Chatter)
+        self.message_post(body=_("Orçamento em PDF enviado por WhatsApp."))
+
+        # Retorna um efeito visual para o usuário
+        return {
+            'effect': { 'fadeout': 'slow', 'message': 'PDF do orçamento enviado com sucesso!', 'type': 'rainbow_man' }
+        }
 
     def action_enviar_whatsapp_cancelado(self):
         self.ensure_one()

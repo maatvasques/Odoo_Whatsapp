@@ -9,10 +9,14 @@
                 <xpath expr="//header" position="inside">
                     <button name="action_enviar_whatsapp_cotacao"
                             string="Enviar Cotação por WhatsApp"
-                            type="object"
-                            class="btn-primary"
+                            type="object" class="btn-secondary"
                             invisible="state not in ['draft', 'sent']"/>
-                    </xpath>
+
+                    <button name="action_enviar_whatsapp_pdf"
+                            string="Enviar PDF por WhatsApp"
+                            type="object" class="btn-primary"
+                            invisible="state not in ['draft', 'sent', 'sale']"/>
+                </xpath>
             </field>
         </record>
     </data>
