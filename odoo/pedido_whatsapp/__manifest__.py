@@ -22,6 +22,7 @@
     'data': [
         'data/mail_template_data.xml',
         'views/sale_order_views_inherited.xml',
+        'views/sale_order_views.xml',
     ],
     'installable': True,
     'application': True, # Marcamos como aplicação para aparecer em destaque

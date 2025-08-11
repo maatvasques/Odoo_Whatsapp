@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 import logging
 from odoo import models, _
+# --- ADIÇÃO IMPORTANTE AQUI ---
+# Importamos a biblioteca de ferramentas de email do Odoo
+from odoo.tools import mail
 
 # Importamos o Mixin diretamente
 from odoo.addons.whatsapp_core.models.whatsapp_mixin import WhatsappApiMixin
 
 _logger = logging.getLogger(__name__)
 
-# Usamos a herança mista (Python + Odoo) que resolveu o erro de 'TypeError'.
+# Usamos a herança mista (Python + Odoo)
 class SaleOrder(models.Model, WhatsappApiMixin):
     _description = 'Pedido de Venda com Integração WhatsApp'
-    # Usamos o _inherit como string para estender o modelo existente.
+    # Usamos o _inherit como string para estender o modelo
     _inherit = 'sale.order'
 
     def _get_whatsapp_message(self, template_xml_id):
@@ -20,14 +23,14 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         self.ensure_one()
         template = self.env.ref(template_xml_id)
         
-        # --- CORREÇÃO FINAL E VERIFICADA AQUI ---
-        # O argumento 'compute_lang=True' foi removido da linha abaixo.
-        message = template._render_template(
+        # Renderiza o template para substituir as variáveis {{ ... }}
+        message_html = template._render_template(
             template.body_html, 'sale.order', self.ids
         )[self.id]
         
-        # Converte qualquer resquício de HTML para texto puro, ideal para WhatsApp.
-        return self.env['ir.fields.converter'].text_from_html(message)
+        # --- CORREÇÃO FINAL E VERIFICADA AQUI ---
+        # Usa a função correta 'html2plaintext' para converter HTML em texto puro
+        return mail.html2plaintext(message_html)
 
     def action_enviar_whatsapp_cotacao(self):
         self.ensure_one()
@@ -52,7 +55,7 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         return True
 
     def action_cancel(self):
-        res = super(SaleOrder, self).action_cancel()
+        res = super().action_cancel()
         try:
             self.action_enviar_whatsapp_cancelado()
         except Exception as e:

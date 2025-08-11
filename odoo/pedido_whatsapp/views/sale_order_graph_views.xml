@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="action_sale_order_analysis" model="ir.actions.act_window">
+            <field name="name">Análise de Vendas</field>
+            <field name="res_model">sale.order</field>
+            <field name="view_mode">graph,pivot,tree,form</field>
+            <field name="domain">[('state', 'in', ('sale', 'done'))]</field>
+            <field name="context">{'group_by': 'date_order:month'}</field>
+        </record>
+
+        <menuitem id="menu_sale_order_analysis" name="Análise de Vendas" parent="sale.menu_sale_report" action="action_sale_order_analysis" sequence="1"/>
+
+        <record id="view_order_line_graph" model="ir.ui.view">
+            <field name="name">sale.order.line.graph</field>
+            <field name="model">sale.order.line</field>
+            <field name="arch" type="xml">
+                <graph string="Análise de Produtos Vendidos">
+                    <field name="product_id"/>
+                    <field name="price_total" type="measure"/>
+                </graph>
+            </field>
+        </record>
+
+        <record id="view_order_line_pivot" model="ir.ui.view">
+            <field name="name">sale.order.line.pivot</field>
+            <field name="model">sale.order.line</field>
+            <field name="arch" type="xml">
+                <pivot string="Análise de Produtos Vendidos">
+                    <field name="product_id" type="row"/>
+                    <field name="order_date_related" type="col" interval="month"/>
+                    <field name="price_subtotal" type="measure"/>
+                </pivot>
+            </field>
+        </record>
+
+        <record id="action_product_sale_analysis" model="ir.actions.act_window">
+            <field name="name">Análise de Produtos Vendidos</field>
+            <field name="res_model">sale.order.line</field>
+            <field name="view_mode">graph,pivot,tree</field>
+            <field name="domain">[('state', 'in', ('sale', 'done'))]</field>
+        </record>
+
+        <menuitem id="menu_product_sale_analysis" name="Análise de Produtos" parent="sale.menu_sale_report" action="action_product_sale_analysis" sequence="2"/>
+    </data>
+</odoo>
