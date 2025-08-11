@@ -35,6 +35,8 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - WHATSAPP_HOOK_URL=http://host.docker.internal:8069/whatsapp/webhook
+      - WHATSAPP_HOOK_EVENTS=message
       - WAHA_PLUS_AUTH_API_KEY=sua-chave-secreta-aqui
     restart: unless-stopped
 
