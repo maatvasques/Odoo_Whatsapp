@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="mail_template_sale_quotation" model="mail.template">
+            <field name="name">WhatsApp: Cotação de Venda</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="body_html"><![CDATA[
+*Olá, {{ object.partner_id.name }}!* 😊
+
+Segue sua cotação *{{ object.name }}* no valor de *{{ format_amount(object.amount_total, object.currency_id) }}*.
+
+Qualquer dúvida, estamos à disposição!
+]]></field>
+        </record>
+
+        <record id="mail_template_sale_confirmation" model="mail.template">
+            <field name="name">WhatsApp: Confirmação de Venda</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="body_html"><![CDATA[
+*Olá, {{ object.partner_id.name }}!* 🎉
+
+Seu pedido *{{ object.name }}* foi confirmado com sucesso!
+
+Valor total: *{{ format_amount(object.amount_total, object.currency_id) }}*.
+Obrigado pela sua compra!
+]]></field>
+        </record>
+
+        <record id="mail_template_sale_cancel" model="mail.template">
+            <field name="name">WhatsApp: Cancelamento de Venda</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="body_html"><![CDATA[
+*Olá, {{ object.partner_id.name }}.*
+
+Informamos que o seu pedido *{{ object.name }}* foi cancelado conforme solicitado.
+
+Se precisar de algo mais, é só chamar.
+]]></field>
+        </record>
+    </data>
+</odoo>

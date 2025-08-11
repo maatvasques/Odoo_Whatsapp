@@ -1,0 +1,43 @@
+services:
+  web:
+    build: .
+    container_name: odoo_web
+    command: -c /etc/odoo/odoo.conf
+    entrypoint: /entrypoint_fixed.sh
+    depends_on:
+      mydb:
+        condition: service_healthy
+    ports:
+      - "8069:8069"
+    volumes:
+      - ./odoo:/mnt/extra-addons
+      - ./odoo.conf:/etc/odoo/odoo.conf
+      - ./entrypoint_fixed.sh:/entrypoint_fixed.sh
+    restart: unless-stopped
+
+  mydb:
+    image: postgres:15
+    container_name: odoo_db
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_USER=odoo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  waha:
+    image: devlikeapro/waha  # <-- ALTERAÇÃO AQUI
+    container_name: waha_api
+    ports:
+      - "3000:3000"
+    environment:
+      - WAHA_PLUS_AUTH_API_KEY=sua-chave-secreta-aqui
+    restart: unless-stopped
+
+volumes:
+  odoo-web-data:
+  odoo-db-data:
