@@ -11,6 +11,9 @@
     'category': 'Extra Tools',
     'version': '17.0.1.0.0',
     'depends': ['base'],
+    'data': [
+        'data/ir_config_parameter_data.xml',
+    ],
     'installable': True,
     'application': False,
     'auto_install': False,

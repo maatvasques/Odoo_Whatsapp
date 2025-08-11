@@ -27,6 +27,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data
     restart: unless-stopped
 
   waha:
