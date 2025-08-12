@@ -22,7 +22,6 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         return mail.html2plaintext(message_html)
 
     def action_enviar_whatsapp_cotacao(self):
-        # ... (Esta função está correta e não muda)
         self.ensure_one()
         try:
             message_text = self._get_whatsapp_message('pedido_whatsapp.mail_template_sale_quotation')
@@ -40,14 +39,13 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         self.ensure_one()
 
         # --- CORREÇÃO FINAL E DEFINITIVA AQUI ---
-        # 1. Buscamos o relatório de forma segura.
-        report = self.env['ir.actions.report']._get_report_from_name('sale.report_saleorder')
-        if not report:
-            raise UserError(_("O relatório de orçamento padrão ('sale.report_saleorder') não foi encontrado."))
-
-        # 2. Usamos o método oficial 'report_action' para gerar o PDF.
-        #    Este método lida com todas as permissões e contextos corretamente.
-        pdf_content = report._render_qweb_pdf(self.id)[0]
+        # 1. Buscamos o relatório de forma segura usando o nome técnico padrão.
+        report = self.env.ref('sale.action_report_saleorder').with_user(SUPERUSER_ID)
+        
+        # 2. Usamos o método _render_qweb_pdf, passando o ID como um número (self.id)
+        #    para evitar o TypeError, mas executando com o contexto de superusuário
+        #    que acabamos de definir com .with_user(SUPERUSER_ID).
+        pdf_content, content_type = report._render_qweb_pdf(self.id)
         # --- FIM DA CORREÇÃO ---
 
         pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
@@ -63,7 +61,6 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         }
 
     def action_enviar_whatsapp_cancelado(self):
-        # ... (Esta função está correta e não muda)
         self.ensure_one()
         message_text = self._get_whatsapp_message('pedido_whatsapp.mail_template_sale_cancel')
         chat_id = self._format_waha_number(self.partner_id)
@@ -72,7 +69,6 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         return True
 
     def action_cancel(self):
-        # ... (Esta função está correta e não muda)
         res = super().action_cancel()
         try:
             self.action_enviar_whatsapp_cancelado()
