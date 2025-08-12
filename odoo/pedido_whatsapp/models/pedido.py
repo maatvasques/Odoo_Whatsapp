@@ -58,9 +58,10 @@ class SaleOrder(models.Model, WhatsappApiMixin):
             raise UserError(_("Não foi possível gerar ou encontrar o anexo do PDF."))
         pdf_base64 = attachment.datas.decode('utf-8')
         file_name = attachment.name
+        mimetype = attachment.mimetype
         caption = f"Olá, {self.partner_id.name}! Segue em anexo o seu orçamento."
         chat_id = self._format_waha_number(self.partner_id)
-        self._send_whatsapp_document(chat_id, file_name, pdf_base64, caption)
+        self._send_whatsapp_document(chat_id, file_name, pdf_base64, mimetype, caption)
         self.message_post(body=_("Orçamento em PDF enviado por WhatsApp."))
         return {'effect': {'fadeout': 'slow', 'message': 'PDF do orçamento enviado com sucesso!', 'type': 'rainbow_man'}}
 

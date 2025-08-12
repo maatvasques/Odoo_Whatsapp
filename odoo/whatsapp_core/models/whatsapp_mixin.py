@@ -42,7 +42,7 @@ class WhatsappApiMixin(models.AbstractModel):
         except requests.exceptions.RequestException as e:
             raise UserError(_("Falha ao enviar a mensagem via WhatsApp.\n\nDetalhe: %s", e))
         
-    def _send_whatsapp_document(self, chat_id, file_name, base64_data, caption=''):
+    def _send_whatsapp_document(self, chat_id, file_name, base64_data, mimetype, caption=''):
         waha_url = self._get_waha_param('whatsapp.api.url')
         api_key = self._get_waha_param('whatsapp.api.key')
         session = self._get_waha_param('whatsapp.api.session')
@@ -53,17 +53,16 @@ class WhatsappApiMixin(models.AbstractModel):
         
         headers = { "Content-Type": "application/json", "X-Api-Key": api_key }
         
-        # --- CORREÇÃO FINAL AQUI ---
-        # Tentamos a estrutura "achatada" (flat) para o payload,
-        # que é a outra forma comum que a API WAHA utiliza.
         payload = {
             "session": session,
             "chatId": chat_id,
-            "fileName": file_name, # O nome do campo é "fileName" com 'N' maiúsculo
-            "data": base64_data,
+            "file": {
+                "mimetype": mimetype,
+                "filename": file_name,
+                "data": base64_data,
+            },
             "caption": caption
         }
-        # --- FIM DA CORREÇÃO ---
 
         try:
             response = requests.post(api_url, json=payload, headers=headers, timeout=20)
