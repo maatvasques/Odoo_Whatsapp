@@ -1,9 +1,8 @@
 # odoo/whatsapp_core/models/whatsapp_mixin.py
-# -*- coding: utf-8 -*-
 import requests
 import re
 import logging
-from odoo import models, fields, _
+from odoo import models, _
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -13,11 +12,9 @@ class WhatsappApiMixin(models.AbstractModel):
     _description = 'Mixin para integração com API WhatsApp (WAHA)'
 
     def _get_waha_param(self, param_name):
-        """Função auxiliar para buscar um parâmetro de configuração."""
         return self.env['ir.config_parameter'].sudo().get_param(param_name)
 
     def _format_waha_number(self, partner):
-        # ... (esta função não muda)
         if not partner.phone and not partner.mobile:
             raise UserError(_("O cliente '%s' não possui um número de telefone ou celular cadastrado.", partner.name))
         number = partner.mobile or partner.phone
@@ -30,46 +27,35 @@ class WhatsappApiMixin(models.AbstractModel):
         return f"{clean_number}@c.us"
 
     def _send_whatsapp_message(self, chat_id, message_text):
-        # --- MUDANÇA PRINCIPAL AQUI ---
-        # Buscamos os dados dos parâmetros de sistema do Odoo
         waha_url = self._get_waha_param('whatsapp.api.url')
         api_key = self._get_waha_param('whatsapp.api.key')
         session = self._get_waha_param('whatsapp.api.session')
-
         if not waha_url or not api_key or not session:
-            raise UserError(_("As configurações da API do WhatsApp não foram definidas. Vá em Configurações > Técnico > Parâmetros de Sistema."))
-
+            raise UserError(_("As configurações da API do WhatsApp não foram definidas."))
         api_url = f"{waha_url}/api/sendText"
         headers = { "Content-Type": "application/json", "X-Api-Key": api_key }
-        payload = {
-            "session": session,
-            "chatId": chat_id,
-            "text": message_text,
-        }
-
-        _logger.info("Enviando mensagem via WAHA. URL: %s, Payload: %s", api_url, payload)
-
+        payload = {"session": session, "chatId": chat_id, "text": message_text}
         try:
             response = requests.post(api_url, json=payload, headers=headers, timeout=10)
             response.raise_for_status()
-            _logger.info("Mensagem enviada com sucesso. Resposta: %s", response.text)
             return True
         except requests.exceptions.RequestException as e:
-            _logger.error("Erro ao conectar com a API do WhatsApp: %s", e)
-            raise UserError(_("Falha ao enviar a mensagem via WhatsApp. Verifique a conexão com a API e tente novamente.\n\nDetalhe: %s", e))
+            raise UserError(_("Falha ao enviar a mensagem via WhatsApp.\n\nDetalhe: %s", e))
         
     def _send_whatsapp_document(self, chat_id, file_name, base64_data, caption=''):
-        """Envia um documento (PDF) codificado em Base64."""
         waha_url = self._get_waha_param('whatsapp.api.url')
         api_key = self._get_waha_param('whatsapp.api.key')
         session = self._get_waha_param('whatsapp.api.session')
-
         if not waha_url or not api_key or not session:
             raise UserError(_("As configurações da API do WhatsApp não foram definidas."))
-
-        # A URL da API para enviar arquivos é diferente
-        api_url = f"{waha_url}/api/sendDocument"
+        
+        api_url = f"{waha_url}/api/sendFile"
+        
         headers = { "Content-Type": "application/json", "X-Api-Key": api_key }
+        
+        # --- CORREÇÃO FINAL E DEFINITIVA AQUI ---
+        # Montamos o payload para ser IDÊNTICO ao exemplo da sua documentação,
+        # enviando o arquivo dentro do objeto "file" e removendo campos opcionais.
         payload = {
             "session": session,
             "chatId": chat_id,
@@ -77,17 +63,16 @@ class WhatsappApiMixin(models.AbstractModel):
                 "mimetype": "application/pdf",
                 "filename": file_name,
                 "data": base64_data
-            },
-            "caption": caption # Legenda opcional para o arquivo
+            }
+            # A legenda (caption) é enviada separadamente se existir.
         }
-
-        _logger.info("Enviando DOCUMENTO via WAHA. URL: %s", api_url)
+        if caption:
+            payload['caption'] = caption
+        # --- FIM DA CORREÇÃO ---
 
         try:
-            response = requests.post(api_url, json=payload, headers=headers, timeout=20) # Aumentamos o timeout para arquivos
+            response = requests.post(api_url, json=payload, headers=headers, timeout=20)
             response.raise_for_status()
-            _logger.info("Documento enviado com sucesso. Resposta: %s", response.text)
             return True
         except requests.exceptions.RequestException as e:
-            _logger.error("Erro ao enviar documento via WhatsApp: %s", e)
             raise UserError(_("Falha ao enviar o documento via WhatsApp.\n\nDetalhe: %s", e))
