@@ -53,21 +53,16 @@ class WhatsappApiMixin(models.AbstractModel):
         
         headers = { "Content-Type": "application/json", "X-Api-Key": api_key }
         
-        # --- CORREÇÃO FINAL E DEFINITIVA AQUI ---
-        # Montamos o payload para ser IDÊNTICO ao exemplo da sua documentação,
-        # enviando o arquivo dentro do objeto "file" e removendo campos opcionais.
+        # --- CORREÇÃO FINAL AQUI ---
+        # Tentamos a estrutura "achatada" (flat) para o payload,
+        # que é a outra forma comum que a API WAHA utiliza.
         payload = {
             "session": session,
             "chatId": chat_id,
-            "file": {
-                "mimetype": "application/pdf",
-                "filename": file_name,
-                "data": base64_data
-            }
-            # A legenda (caption) é enviada separadamente se existir.
+            "fileName": file_name, # O nome do campo é "fileName" com 'N' maiúsculo
+            "data": base64_data,
+            "caption": caption
         }
-        if caption:
-            payload['caption'] = caption
         # --- FIM DA CORREÇÃO ---
 
         try:
