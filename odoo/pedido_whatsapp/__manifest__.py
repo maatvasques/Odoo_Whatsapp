@@ -14,13 +14,14 @@
     'depends': [
         'sale_management',
         'whatsapp_core',
+        'account',
     ],
 
     'data': [
         'data/mail_template_data.xml',
         'views/sale_order_views_inherited.xml',
-        # --- CORREÇÃO FINAL E VERIFICADA AQUI ---
         'views/sale_order_graph_views.xml',
+        'views/account_move_views_.xml',
     ],
     'installable': True,
     'application': True,
