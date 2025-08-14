@@ -5,15 +5,22 @@
             <field name="key">whatsapp.api.url</field>
             <field name="value">http://waha:3000</field>
         </record>
-
         <record id="waha_api_key" model="ir.config_parameter">
             <field name="key">whatsapp.api.key</field>
             <field name="value">sua-chave-secreta-aqui</field>
         </record>
-
         <record id="waha_api_session" model="ir.config_parameter">
             <field name="key">whatsapp.api.session</field>
             <field name="value">default</field>
+        </record>
+
+        <record id="workwise_api_url" model="ir.config_parameter">
+            <field name="key">workwise.api.url</field>
+            <field name="value">https://hmlapi.workwise.com.br/upload</field>
+        </record>
+        <record id="workwise_api_token" model="ir.config_parameter">
+            <field name="key">workwise.api.token</field>
+            <field name="value">COLE_SEU_TOKEN_AQUI</field>
         </record>
     </data>
 </odoo>

@@ -15,6 +15,7 @@ class WhatsappApiMixin(models.AbstractModel):
         return self.env['ir.config_parameter'].sudo().get_param(param_name)
 
     def _format_waha_number(self, partner):
+        # ... (código original, sem mudanças)
         if not partner.phone and not partner.mobile:
             raise UserError(_("O cliente '%s' não possui um número de telefone ou celular cadastrado.", partner.name))
         number = partner.mobile or partner.phone
@@ -34,7 +35,10 @@ class WhatsappApiMixin(models.AbstractModel):
             raise UserError(_("As configurações da API do WhatsApp não foram definidas."))
         api_url = f"{waha_url}/api/sendText"
         headers = { "Content-Type": "application/json", "X-Api-Key": api_key }
+        
+        # --- VOLTAMOS A USAR O TEXTO ORIGINAL DO TEMPLATE ---
         payload = {"session": session, "chatId": chat_id, "text": message_text}
+        
         try:
             response = requests.post(api_url, json=payload, headers=headers, timeout=10)
             response.raise_for_status()
@@ -43,16 +47,14 @@ class WhatsappApiMixin(models.AbstractModel):
             raise UserError(_("Falha ao enviar a mensagem via WhatsApp.\n\nDetalhe: %s", e))
         
     def _send_whatsapp_document(self, chat_id, file_name, base64_data, mimetype, caption=''):
+        # ... (código original, sem mudanças)
         waha_url = self._get_waha_param('whatsapp.api.url')
         api_key = self._get_waha_param('whatsapp.api.key')
         session = self._get_waha_param('whatsapp.api.session')
         if not waha_url or not api_key or not session:
             raise UserError(_("As configurações da API do WhatsApp não foram definidas."))
-        
         api_url = f"{waha_url}/api/sendFile"
-        
         headers = { "Content-Type": "application/json", "X-Api-Key": api_key }
-        
         payload = {
             "session": session,
             "chatId": chat_id,
@@ -63,7 +65,6 @@ class WhatsappApiMixin(models.AbstractModel):
             },
             "caption": caption
         }
-
         try:
             response = requests.post(api_url, json=payload, headers=headers, timeout=20)
             response.raise_for_status()

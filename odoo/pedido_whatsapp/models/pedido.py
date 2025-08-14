@@ -9,16 +9,16 @@ from odoo.addons.whatsapp_core.models.whatsapp_mixin import WhatsappApiMixin
 
 _logger = logging.getLogger(__name__)
 
-# Usamos a herança mista que NÃO QUEBRA o servidor
 class SaleOrder(models.Model, WhatsappApiMixin):
     _description = 'Pedido de Venda com Integração WhatsApp'
-    # Usamos o _inherit como string simples
     _inherit = 'sale.order'
 
     def _get_whatsapp_message(self, template_xml_id):
         self.ensure_one()
         template = self.env.ref(template_xml_id)
-        message_html = template._render_template(template.body_html, 'sale.order', self.ids)[self.id]
+        message_html = template._render_template(
+            template.body_html, 'sale.order', self.ids
+        )[self.id]
         return mail.html2plaintext(message_html)
 
     def action_confirm(self):
@@ -42,28 +42,38 @@ class SaleOrder(models.Model, WhatsappApiMixin):
 
     def action_enviar_whatsapp_pdf(self):
         self.ensure_one()
-        composer = self.env['mail.compose.message'].with_context({
-            'default_model': 'sale.order',
-            'default_res_ids': [self.id], # Sintaxe correta para Odoo 17
-            'default_use_template': False,
-            'default_template_id': False,
-            'default_composition_mode': 'comment',
-        }).create({})
-        composer.action_send_mail()
-        attachment = self.env['ir.attachment'].search([
-            ('res_model', '=', 'sale.order'),
-            ('res_id', '=', self.id)
-        ], order='create_date desc', limit=1)
-        if not attachment:
-            raise UserError(_("Não foi possível gerar ou encontrar o anexo do PDF."))
-        pdf_base64 = attachment.datas.decode('utf-8')
-        file_name = attachment.name
-        mimetype = attachment.mimetype
+
+        # --- CORREÇÃO FINAL E DEFINITIVA AQUI ---
+        # 1. Criamos um novo ambiente de execução com o usuário SUPERUSER.
+        #    Isso garante que todas as operações seguintes ignorem as regras de acesso.
+        sudo_env = self.env(user=SUPERUSER_ID)
+        
+        # 2. Usamos este ambiente para buscar o relatório de forma segura.
+        report_template = sudo_env['ir.actions.report'].search([
+            ('model', '=', 'sale.order'),
+            ('report_type', '=', 'qweb-pdf')
+        ], limit=1)
+
+        if not report_template:
+            raise UserError(_("Nenhum relatório PDF para Pedidos de Venda foi encontrado no sistema."))
+
+        # 3. Renderizamos o PDF passando o ID como um NÚMERO ÚNICO (self.id)
+        #    para evitar o erro de 'lista'.
+        pdf_content, content_type = report_template._render_qweb_pdf(self.id)
+        # --- FIM DA CORREÇÃO ---
+
+        pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+        file_name = f"{self.name}.pdf"
         caption = f"Olá, {self.partner_id.name}! Segue em anexo o seu orçamento."
-        chat_id = self._format_waha_number(self.partner_id)
-        self._send_whatsapp_document(chat_id, file_name, pdf_base64, mimetype, caption)
-        self.message_post(body=_("Orçamento em PDF enviado por WhatsApp."))
-        return {'effect': {'fadeout': 'slow', 'message': 'PDF do orçamento enviado com sucesso!', 'type': 'rainbow_man'}}
+
+        # Retornamos à função de envio para a API externa (WorkWise)
+        self._send_document_to_workwise(file_name, base64.b64decode(pdf_base64), self.name)
+        
+        self.message_post(body=_("Orçamento em PDF enviado para a API Externa."))
+        
+        return {
+            'effect': { 'fadeout': 'slow', 'message': 'PDF do orçamento enviado com sucesso!', 'type': 'rainbow_man' }
+        }
 
     def action_enviar_whatsapp_cancelado(self):
         self.ensure_one()
