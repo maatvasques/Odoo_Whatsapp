@@ -12,9 +12,6 @@ class SaleOrder(models.Model, WhatsappApiMixin):
     _description = 'Pedido de Venda com Integração WhatsApp'
 
     def action_open_whatsapp_composer(self):
-        """
-        Prepara e abre o wizard 'composer' com o contexto correto.
-        """
         self.ensure_one()
         
         report = self.env.ref('sale.action_report_saleorder').with_user(SUPERUSER_ID)
@@ -25,8 +22,6 @@ class SaleOrder(models.Model, WhatsappApiMixin):
             'name': f"{self.name}.pdf",
             'type': 'binary',
             'datas': pdf_base64,
-            'res_model': 'mail.compose.message',
-            'res_id': 0,
             'mimetype': 'application/pdf',
         })
 
@@ -38,13 +33,8 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         template = self.env.ref(template_xml_id)
         
         ctx = {
-            'default_model': 'sale.order',
-            'default_res_id': self.id,
-            'default_use_template': False,
-            'default_template_id': None,
-            'default_composition_mode': 'comment',
             'default_subject': f"Pedido {self.name}",
-            'default_body': mail.html2plaintext(template.body_html),
+            'default_body': template.body_html, # Enviamos o HTML para o wizard
             'default_whatsapp_number': self._format_waha_number(self.partner_id),
             'default_attachment_ids': [attachment.id],
         }
@@ -52,18 +42,14 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         return {
             'type': 'ir.actions.act_window',
             'name': 'Enviar por WhatsApp',
-            'res_model': 'mail.compose.message',
+            'res_model': 'whatsapp.composer.wizard', # Aponta para o nosso novo modelo
             'views': [(self.env.ref('pedido_whatsapp.view_whatsapp_composer_wizard_form').id, 'form')],
             'target': 'new',
             'context': ctx,
         }
 
     def action_cancel(self):
-        """
-        Envia notificação de cancelamento automaticamente.
-        """
         res = super().action_cancel()
-        
         for order in self:
             try:
                 template = self.env.ref('pedido_whatsapp.mail_template_sale_cancel')
@@ -74,5 +60,4 @@ class SaleOrder(models.Model, WhatsappApiMixin):
                 order.message_post(body=_("Notificação de cancelamento enviada por WhatsApp."))
             except Exception as e:
                 _logger.error("Falha ao enviar notificação de cancelamento para o pedido %s: %s", order.name, e)
-        
         return res

@@ -14,10 +14,11 @@
     'depends': [
         'sale_management',
         'whatsapp_core',
-        'mail',
+        #'mail',
     ],
 
     'data': [
+        'security/ir.model.access.csv',
         'views/whatsapp_composer_wizard_view.xml',
         'data/mail_template_data.xml',
         'views/sale_order_views_inherited.xml',
