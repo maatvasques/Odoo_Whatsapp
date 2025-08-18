@@ -19,7 +19,7 @@ class WhatsappComposerWizard(models.TransientModel):
         Função de envio para a API da WorkWise com dados hardcoded.
         """
         workwise_url = "https://hmlapi.workwise.com.br/upload"
-        workwise_token = "MEU_TOKEN_SUPER_SEGURO" # Lembre-se de usar o token real
+        workwise_token = "MEU_TOKEN_SUPER_SEGURO"  # Lembre-se de usar o token real
 
         headers = {'Authorization': f'Bearer {workwise_token}'}
         files = {'file': (file_name, pdf_bytes, 'application/pdf')}
@@ -38,7 +38,6 @@ class WhatsappComposerWizard(models.TransientModel):
         """
         Função de envio para a API do WAHA.
         """
-        # Usamos o sudo() para permitir que o wizard acesse os parâmetros do sistema
         config_param = self.env['ir.config_parameter'].sudo()
         waha_url = config_param.get_param('whatsapp.api.url')
         api_key = config_param.get_param('whatsapp.api.key')
@@ -62,7 +61,7 @@ class WhatsappComposerWizard(models.TransientModel):
 
     def action_send_whatsapp(self):
         """
-        Esta é a nova função que nosso botão "Enviar" customizado vai chamar.
+        Esta é a nova função que nosso botão 'Enviar via WhatsApp' vai chamar.
         """
         self.ensure_one()
         order = self.env['sale.order'].browse(self.env.context.get('active_id'))
@@ -71,19 +70,13 @@ class WhatsappComposerWizard(models.TransientModel):
         self._send_whatsapp_message(self.whatsapp_number, self.body)
 
         # 2. Enviar o PDF para a API WorkWise
-        # O PDF está nos anexos que pré-carregamos
-        attachment = self.attachment_ids[0]
-        pdf_bytes = base64.b64decode(attachment.datas)
-        self._send_document_to_workwise(order.name, pdf_bytes, attachment.name)
+        if self.attachment_ids:
+            attachment = self.attachment_ids[0]
+            pdf_bytes = base64.b64decode(attachment.datas)
+            self._send_document_to_workwise(order.name, pdf_bytes, attachment.name)
 
-        # Adiciona uma nota no histórico do pedido
         order.message_post(body=_("Mensagem e PDF enviados via Composer do WhatsApp."))
         
-        # Fecha a janela e mostra a mensagem de sucesso
         return {
-            'effect': {
-                'fadeout': 'slow',
-                'message': 'WhatsApp e PDF enviados com sucesso!',
-                'type': 'rainbow_man',
-            }
+            'effect': { 'fadeout': 'slow', 'message': 'WhatsApp e PDF enviados!', 'type': 'rainbow_man' }
         }

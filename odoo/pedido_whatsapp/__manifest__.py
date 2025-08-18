@@ -19,7 +19,6 @@
 
     'data': [
         'security/ir.model.access.csv',
-        'views/sale_order_send_pdf_wizard_view.xml',
         'views/whatsapp_composer_wizard_view.xml',
         'data/mail_template_data.xml',
         'views/sale_order_views_inherited.xml',
