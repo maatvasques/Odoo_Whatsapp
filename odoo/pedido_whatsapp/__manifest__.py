@@ -2,24 +2,19 @@
 {
     'name': "Integração de Pedidos com WhatsApp",
     'summary': """Envia notificações de pedidos de venda via WhatsApp.""",
-    'description': """
-        Adiciona botões e lógica ao Pedido de Venda para enviar notificações
-        de cotação, confirmação e cancelamento usando o whatsapp_core.
-    """,
+    'description': """...""",
     'author': "Seu Nome",
     'website': "https://www.seusite.com",
     'category': 'Sales',
     'version': '17.0.1.0.0',
-
     'depends': [
         'sale_management',
         'whatsapp_core',
-        #'mail',
+        'mail',  # A dependência CRÍTICA
     ],
-
     'data': [
-        'security/ir.model.access.csv',
-        'views/whatsapp_composer_wizard_view.xml',
+        # Não precisamos de um arquivo de segurança para esta abordagem
+        'views/whatsapp_composer_view.xml', # Nossa nova view
         'data/mail_template_data.xml',
         'views/sale_order_views_inherited.xml',
         'views/sale_order_graph_views.xml',
