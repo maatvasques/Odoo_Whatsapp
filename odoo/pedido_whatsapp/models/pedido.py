@@ -28,7 +28,7 @@ class SaleOrder(models.Model, WhatsappApiMixin):
             },
         }
 
-    # --- FUNÇÕES ANTIGAS QUE JÁ FUNCIONAVAM ---
+    # --- FUNÇÕES DE WHATSAPP ---
 
     def action_enviar_whatsapp_cotacao(self):
         """
@@ -46,7 +46,6 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         Envia a confirmação de venda como mensagem de TEXTO.
         """
         self.ensure_one()
-        # Usa o template de confirmação
         message_text = self._get_whatsapp_message('pedido_whatsapp.mail_template_sale_confirmation')
         chat_id = self._format_waha_number(self.partner_id)
         self._send_whatsapp_message(chat_id, message_text)
@@ -64,8 +63,27 @@ class SaleOrder(models.Model, WhatsappApiMixin):
 
     def action_confirm(self):
         res = super(SaleOrder, self).action_confirm()
+        # Se quiser envio automático na confirmação, adicione a chamada da função aqui
         return res
 
+    # --- FUNÇÃO DE CANCELAMENTO ATUALIZADA ---
     def action_cancel(self):
+        # Primeiro, executa a lógica original de cancelamento do Odoo
         res = super().action_cancel()
+        
+        # Loop para garantir que funcione mesmo cancelando em lote
+        for order in self:
+            try:
+                # Prepara e envia a mensagem de WhatsApp
+                message_text = order._get_whatsapp_message('pedido_whatsapp.mail_template_sale_cancel')
+                chat_id = order._format_waha_number(order.partner_id)
+                order._send_whatsapp_message(chat_id, message_text)
+                
+                # Adiciona uma nota no histórico do pedido
+                order.message_post(body=_("Notificação de cancelamento enviada por WhatsApp."))
+            except Exception as e:
+                # Se algo der errado (ex: cliente sem número), registra o erro mas não impede o cancelamento
+                _logger.error("Falha ao enviar notificação de cancelamento para o pedido %s: %s", order.name, e)
+                order.message_post(body=_("Falha ao enviar notificação de cancelamento por WhatsApp: %s", e))
+        
         return res
