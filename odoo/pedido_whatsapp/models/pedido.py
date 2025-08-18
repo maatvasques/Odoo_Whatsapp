@@ -41,6 +41,18 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         self.message_post(body=_("Cotação (texto) enviada por WhatsApp."))
         return {'effect': {'fadeout': 'slow', 'message': 'Cotação enviada com sucesso!', 'type': 'rainbow_man'}}
 
+    def action_enviar_whatsapp_confirmacao(self):
+        """
+        Envia a confirmação de venda como mensagem de TEXTO.
+        """
+        self.ensure_one()
+        # Usa o template de confirmação
+        message_text = self._get_whatsapp_message('pedido_whatsapp.mail_template_sale_confirmation')
+        chat_id = self._format_waha_number(self.partner_id)
+        self._send_whatsapp_message(chat_id, message_text)
+        self.message_post(body=_("Confirmação de Venda enviada por WhatsApp."))
+        return {'effect': {'fadeout': 'slow', 'message': 'Confirmação enviada com sucesso!', 'type': 'rainbow_man'}}
+    
     def _get_whatsapp_message(self, template_xml_id):
         """
         Função auxiliar para renderizar o template de mensagem.

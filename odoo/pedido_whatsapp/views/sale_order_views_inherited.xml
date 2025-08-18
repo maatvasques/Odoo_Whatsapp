@@ -15,7 +15,18 @@
                         string="2. Enviar PDF para API"
                         type="object" class="btn-primary"/>
                 
-                </xpath>
+                <button name="action_enviar_whatsapp_cotacao"
+                        string="Enviar Cotação por WhatsApp"
+                        type="object"
+                        class="btn-secondary"
+                        invisible="state not in ['draft', 'sent']"/>
+
+                <button name="action_enviar_whatsapp_confirmacao"
+                        string="Enviar Confirmação por WhatsApp"
+                        type="object"
+                        class="btn-success"
+                        invisible="state not in ['sale', 'done']"/>
+            </xpath>
         </field>
     </record>
 </odoo>
