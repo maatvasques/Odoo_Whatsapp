@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_whatsapp_composer_wizard_form" model="ir.ui.view">
+        <field name="name">whatsapp.composer.wizard.form</field>
+        <field name="model">mail.compose.message</field> 
+        <field name="inherit_id" ref="mail.view_mail_compose_message_wizard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_ids']" position="after">
+                <field name="whatsapp_number" string="Nº WhatsApp"/>
+            </xpath>
+
+            <xpath expr="//field[@name='partner_ids']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <xpath expr="//button[@name='action_send_mail']" position="replace">
+                <button name="action_send_whatsapp" string="Enviar via WhatsApp" type="object" class="btn-primary"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

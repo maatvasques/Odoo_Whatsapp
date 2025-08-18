@@ -1,5 +1,6 @@
 # odoo/pedido_whatsapp/models/pedido.py
 import logging
+import base64
 from odoo import models, _, SUPERUSER_ID
 from odoo.tools import mail
 from odoo.addons.whatsapp_core.models.whatsapp_mixin import WhatsappApiMixin
@@ -10,80 +11,85 @@ class SaleOrder(models.Model, WhatsappApiMixin):
     _inherit = 'sale.order'
     _description = 'Pedido de Venda com Integração WhatsApp'
 
-    def action_open_send_pdf_wizard(self):
+    def action_open_whatsapp_composer(self):
         """
-        Esta função abre a janela (wizard) para o usuário anexar e enviar o PDF.
+        Esta função é o coração da nova funcionalidade.
+        Ela prepara e abre o wizard com o contexto correto (cotação ou confirmação).
         """
         self.ensure_one()
         
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Enviar PDF Anexado para API',
-            'res_model': 'sale.order.send_pdf.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {
-                'default_order_id': self.id,
-                'default_order_name': self.name,
-            },
+        # 1. Gerar o PDF da cotação/pedido
+        report = self.env.ref('sale.action_report_saleorder').with_user(SUPERUSER_ID)
+        pdf_bytes, content_type = report._render_qweb_pdf([self.id])
+        pdf_base64 = base64.b64encode(pdf_bytes)
+
+        # 2. Criar um anexo temporário com o PDF gerado
+        attachment = self.env['ir.attachment'].create({
+            'name': f"{self.name}.pdf",
+            'type': 'binary',
+            'datas': pdf_base64,
+            'res_model': 'mail.compose.message',
+            'res_id': 0,
+            'mimetype': 'application/pdf',
+        })
+
+        # 3. LÓGICA INTELIGENTE: Escolhe o template de mensagem baseado no status do pedido
+        if self.state in ['draft', 'sent']:
+            # Se for um orçamento, usa o template de cotação
+            template_xml_id = 'pedido_whatsapp.mail_template_sale_quotation'
+        else: # Se já for um pedido de venda ('sale' ou 'done'), usa o de confirmação
+            template_xml_id = 'pedido_whatsapp.mail_template_sale_confirmation'
+        
+        template = self.env.ref(template_xml_id)
+        
+        # 4. Preparar o "contexto" para pré-preencher a janela do wizard
+        ctx = {
+            'default_model': 'sale.order',
+            'default_res_id': self.id,
+            'default_use_template': False,
+            'default_template_id': None,
+            'default_composition_mode': 'comment',
+            'default_subject': f"Pedido {self.name}", # Assunto pré-preenchido
+            'default_body': mail.html2plaintext(template.body_html), # Corpo da mensagem
+            'default_whatsapp_number': self._format_waha_number(self.partner_id), # Número do cliente
+            'default_attachment_ids': [attachment.id], # PDF pré-anexado
         }
 
-    # --- FUNÇÕES DE WHATSAPP ---
+        # 5. Retorna a ação que abre a janela do wizard
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Enviar por WhatsApp',
+            'res_model': 'mail.compose.message',
+            'views': [(self.env.ref('pedido_whatsapp.view_whatsapp_composer_wizard_form').id, 'form')],
+            'target': 'new',
+            'context': ctx,
+        }
 
-    def action_enviar_whatsapp_cotacao(self):
-        """
-        Envia a cotação como mensagem de TEXTO.
-        """
-        self.ensure_one()
-        message_text = self._get_whatsapp_message('pedido_whatsapp.mail_template_sale_quotation')
-        chat_id = self._format_waha_number(self.partner_id)
-        self._send_whatsapp_message(chat_id, message_text)
-        self.message_post(body=_("Cotação (texto) enviada por WhatsApp."))
-        return {'effect': {'fadeout': 'slow', 'message': 'Cotação enviada com sucesso!', 'type': 'rainbow_man'}}
-
-    def action_enviar_whatsapp_confirmacao(self):
-        """
-        Envia a confirmação de venda como mensagem de TEXTO.
-        """
-        self.ensure_one()
-        message_text = self._get_whatsapp_message('pedido_whatsapp.mail_template_sale_confirmation')
-        chat_id = self._format_waha_number(self.partner_id)
-        self._send_whatsapp_message(chat_id, message_text)
-        self.message_post(body=_("Confirmação de Venda enviada por WhatsApp."))
-        return {'effect': {'fadeout': 'slow', 'message': 'Confirmação enviada com sucesso!', 'type': 'rainbow_man'}}
-    
-    def _get_whatsapp_message(self, template_xml_id):
-        """
-        Função auxiliar para renderizar o template de mensagem.
-        """
-        self.ensure_one()
-        template = self.env.ref(template_xml_id)
-        message_html = template._render_template(template.body_html, 'sale.order', self.ids)[self.id]
-        return mail.html2plaintext(message_html)
-
-    def action_confirm(self):
-        res = super(SaleOrder, self).action_confirm()
-        # Se quiser envio automático na confirmação, adicione a chamada da função aqui
-        return res
-
-    # --- FUNÇÃO DE CANCELAMENTO ATUALIZADA ---
     def action_cancel(self):
-        # Primeiro, executa a lógica original de cancelamento do Odoo
+        """
+        Sobrescreve a ação de cancelar para enviar uma notificação de WhatsApp automaticamente.
+        """
         res = super().action_cancel()
         
-        # Loop para garantir que funcione mesmo cancelando em lote
         for order in self:
             try:
-                # Prepara e envia a mensagem de WhatsApp
-                message_text = order._get_whatsapp_message('pedido_whatsapp.mail_template_sale_cancel')
+                message_text = order.env.ref('pedido_whatsapp.mail_template_sale_cancel').body_html
+                rendered_body = self.env['mail.template']._render_template(message_text, 'sale.order', order.ids, post_process=True)[order.id]
+                clean_body = mail.html2plaintext(rendered_body)
+
                 chat_id = order._format_waha_number(order.partner_id)
-                order._send_whatsapp_message(chat_id, message_text)
+                order._send_whatsapp_message(chat_id, clean_body)
                 
-                # Adiciona uma nota no histórico do pedido
                 order.message_post(body=_("Notificação de cancelamento enviada por WhatsApp."))
             except Exception as e:
-                # Se algo der errado (ex: cliente sem número), registra o erro mas não impede o cancelamento
                 _logger.error("Falha ao enviar notificação de cancelamento para o pedido %s: %s", order.name, e)
                 order.message_post(body=_("Falha ao enviar notificação de cancelamento por WhatsApp: %s", e))
         
+        return res
+
+    # As funções abaixo são herdadas do mixin e não precisam estar aqui,
+    # mas as mantemos caso queira customizar algo no futuro.
+    # Se quiser um código mais limpo, elas podem ser removidas deste arquivo.
+    def action_confirm(self):
+        res = super(SaleOrder, self).action_confirm()
         return res
