@@ -15,8 +15,7 @@ class SaleOrder(models.Model, WhatsappApiMixin):
         self.ensure_one()
         
         # 1. Gera o PDF
-        report = self.env.ref('sale.action_report_saleorder').with_user(SUPERUSER_ID)
-        pdf_bytes, content_type = report._render_qweb_pdf([self.id])
+        pdf_bytes, content_type = self.env['ir.actions.report']._render_qweb_pdf('sale.action_report_saleorder', [self.id])
         
         # 2. Cria um anexo temporário com o PDF para o pop-up
         attachment = self.env['ir.attachment'].create({

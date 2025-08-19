@@ -13,8 +13,8 @@
         'mail',  # A dependência CRÍTICA
     ],
     'data': [
-        # Não precisamos de um arquivo de segurança para esta abordagem
-        'views/whatsapp_composer_view.xml', # Nossa nova view
+        'views/sale_order_views_inherited.xml',
+        'wizard/whatsapp_composer_wizard_views.xml',
         'data/mail_template_data.xml',
         'views/sale_order_views_inherited.xml',
         'views/sale_order_graph_views.xml',

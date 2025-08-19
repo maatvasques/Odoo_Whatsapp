@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_whatsapp_composer_wizard_form" model="ir.ui.view">
+            <field name="name">whatsapp.composer.wizard.form</field>
+            <field name="model">whatsapp.composer.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Enviar Pedido por WhatsApp">
+                    <sheet>
+                        <group>
+                            <field name="whatsapp_number"/>
+                            <field name="message_body"/> <field name="attachment_ids" widget="many2many_binary"/>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="action_send_message" string="Enviar" type="object" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>
